@@ -54,7 +54,7 @@ Terraform используется для автоматического соз�
 
 ### Terraform outputs
 
-![Terraform outputs](screenshots/02-terraform-outputs.png)
+![Terraform outputs](02-terraform-outputs.png.png)
 
 ## Ansible
 
