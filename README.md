@@ -96,7 +96,7 @@ Ansible используется для настройки серверов по
 
 ### Zabbix Dashboard
 
-![Zabbix Dashboard](screenshots/05-zabbix-dashboard.png)
+![Zabbix Dashboard](05-zabbix-dashboard.png.png)
 
 ### Контролируемые хосты
 
