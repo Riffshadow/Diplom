@@ -84,7 +84,7 @@ Ansible используется для настройки серверов по
 - ответ от Yandex Cloud ALB;
 - веб-страницу проекта.
 
-![Application Load Balancer](screenshots/04-alb.png)
+![Application Load Balancer](04-alb.png.png)
 
 ## Мониторинг — Zabbix
 
