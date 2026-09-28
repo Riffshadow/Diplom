@@ -130,7 +130,7 @@ Filebeat установлен на обоих web-серверах и собир
 - срок хранения: 7 дней;
 - в расписание включены диски всех 6 виртуальных машин.
 
-![Snapshot Schedule](screenshots/08-snapshot-schedule.png)
+![Snapshot Schedule](08-snapshot-schedule.png.png)
 
 ## Безопасность
 
