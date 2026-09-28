@@ -100,7 +100,7 @@ Ansible используется для настройки серверов по
 
 ### Контролируемые хосты
 
-![Zabbix Hosts](screenshots/06-zabbix-hosts.png)
+![Zabbix Hosts](06-zabbix-hosts.png.png)
 
 ## Централизованное логирование
 
