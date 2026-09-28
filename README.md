@@ -50,7 +50,7 @@ Terraform используется для автоматического соз�
 
 ### Созданные виртуальные машины
 
-![Yandex Cloud VMs](01-yandex-vms.png)
+![Yandex Cloud VMs](01-yandex-vms.png.png)
 
 ### Terraform outputs
 
