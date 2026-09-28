@@ -117,7 +117,7 @@ Filebeat установлен на обоих web-серверах и собир
 
 Логи передаются в Elasticsearch и доступны для просмотра через Kibana Discover.
 
-![Kibana Discover](screenshots/07-kibana-discover.png)
+![Kibana Discover](07-kibana-discover.png.png)
 
 ## Резервное копирование
 
