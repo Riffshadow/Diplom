@@ -1,0 +1,59 @@
+---
+- name: Run Kibana 7.17.9 in Docker
+  hosts: kibana
+  become: true
+
+  tasks:
+    - name: Install Docker
+      ansible.builtin.apt:
+        name: docker.io
+        state: present
+        update_cache: true
+
+    - name: Enable and start Docker
+      ansible.builtin.service:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Pull Kibana image
+      ansible.builtin.command:
+        cmd: docker pull docker.elastic.co/kibana/kibana:7.17.9
+      register: kibana_pull
+      changed_when: "'Downloaded newer image' in kibana_pull.stdout"
+
+    - name: Remove old Kibana container if present
+      ansible.builtin.shell: |
+        if docker ps -a --format '{% raw %}{{.Names}}{% endraw %}' | grep -qx kibana; then
+          docker rm -f kibana
+        fi
+      register: remove_kibana
+      changed_when: remove_kibana.stdout != ""
+
+    - name: Start Kibana container
+      ansible.builtin.command:
+        cmd: >
+          docker run -d
+          --name kibana
+          --restart unless-stopped
+          -p 5601:5601
+          -e SERVER_HOST=0.0.0.0
+          -e ELASTICSEARCH_HOSTS=http://10.10.11.20:9200
+          docker.elastic.co/kibana/kibana:7.17.9
+
+    - name: Wait for Kibana port
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 5601
+        timeout: 180
+
+    - name: Wait for Kibana HTTP
+      ansible.builtin.uri:
+        url: http://127.0.0.1:5601/
+        status_code:
+          - 200
+          - 302
+      register: kibana_check
+      retries: 20
+      delay: 5
+      until: kibana_check.status in [200, 302]

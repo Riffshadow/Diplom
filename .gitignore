@@ -1,0 +1,21 @@
+# Terraform: локальные данные и секретные переменные
+**/.terraform/*
+*.tfstate*
+*.tfplan
+*.tfvars
+*.tfvars.json
+crash.log
+
+# Ключи, пароли и локальные настройки
+.env
+.env.*
+*.pem
+*.key
+id_ed25519*
+id_rsa*
+key.json
+authorized_key.json
+secrets/
+*vault-pass*
+ansible/.zabbix_db_password
+*.bak

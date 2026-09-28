@@ -1,0 +1,176 @@
+---
+- name: Install Zabbix 7.0 LTS server
+  hosts: zabbix
+  become: true
+
+  vars:
+    zabbix_repo_deb: /tmp/zabbix-release.deb
+    zabbix_repo_url: "https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_latest_7.0+ubuntu24.04_all.deb"
+
+  tasks:
+    - name: Install base packages
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+        state: present
+        update_cache: true
+
+    - name: Download official Zabbix repository package
+      ansible.builtin.get_url:
+        url: "{{ zabbix_repo_url }}"
+        dest: "{{ zabbix_repo_deb }}"
+        mode: "0644"
+
+    - name: Install Zabbix repository
+      ansible.builtin.apt:
+        deb: "{{ zabbix_repo_deb }}"
+
+    - name: Update apt cache after adding Zabbix repository
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install Zabbix, PostgreSQL and nginx packages
+      ansible.builtin.apt:
+        name:
+          - postgresql
+          - nginx
+          - zabbix-server-pgsql
+          - zabbix-frontend-php
+          - php-pgsql
+          - zabbix-nginx-conf
+          - zabbix-sql-scripts
+          - zabbix-agent2
+        state: present
+
+- name: Configure Zabbix database and server
+  hosts: zabbix
+  become: true
+
+  vars:
+    zabbix_db_password: "{{ lookup('file', playbook_dir + '/.zabbix_db_password') }}"
+
+  tasks:
+    - name: Create or update PostgreSQL Zabbix user
+      ansible.builtin.shell: |
+        sudo -u postgres psql -v ON_ERROR_STOP=1 <<SQL
+        DO \$\$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT FROM pg_catalog.pg_roles WHERE rolname = 'zabbix'
+          ) THEN
+            CREATE ROLE zabbix LOGIN PASSWORD '{{ zabbix_db_password }}';
+          ELSE
+            ALTER ROLE zabbix WITH LOGIN PASSWORD '{{ zabbix_db_password }}';
+          END IF;
+        END
+        \$\$;
+        SQL
+      no_log: true
+      changed_when: false
+
+    - name: Check whether Zabbix database exists
+      ansible.builtin.shell: |
+        sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='zabbix'"
+      register: zabbix_db_exists
+      changed_when: false
+
+    - name: Create Zabbix database
+      ansible.builtin.command:
+        cmd: sudo -u postgres createdb -O zabbix zabbix
+      when: zabbix_db_exists.stdout.strip() != "1"
+
+    - name: Check whether Zabbix schema is imported
+      ansible.builtin.shell: |
+        PGPASSWORD='{{ zabbix_db_password }}' \
+        psql -h 127.0.0.1 -U zabbix -d zabbix \
+        -tAc "SELECT to_regclass('public.users');"
+      register: zabbix_schema
+      changed_when: false
+      no_log: true
+
+    - name: Import initial Zabbix database schema
+      ansible.builtin.shell: |
+        set -o pipefail
+        zcat /usr/share/zabbix-sql-scripts/postgresql/server.sql.gz | \
+        PGPASSWORD='{{ zabbix_db_password }}' \
+        psql -h 127.0.0.1 -U zabbix -d zabbix
+      args:
+        executable: /bin/bash
+      when: zabbix_schema.stdout.strip() != "users"
+      no_log: true
+
+    - name: Configure DBHost
+      ansible.builtin.lineinfile:
+        path: /etc/zabbix/zabbix_server.conf
+        regexp: '^#?\s*DBHost='
+        line: 'DBHost=localhost'
+
+    - name: Configure DBName
+      ansible.builtin.lineinfile:
+        path: /etc/zabbix/zabbix_server.conf
+        regexp: '^#?\s*DBName='
+        line: 'DBName=zabbix'
+
+    - name: Configure DBUser
+      ansible.builtin.lineinfile:
+        path: /etc/zabbix/zabbix_server.conf
+        regexp: '^#?\s*DBUser='
+        line: 'DBUser=zabbix'
+
+    - name: Configure DBPassword
+      ansible.builtin.lineinfile:
+        path: /etc/zabbix/zabbix_server.conf
+        regexp: '^#?\s*DBPassword='
+        line: "DBPassword={{ zabbix_db_password }}"
+      no_log: true
+
+    - name: Start and enable Zabbix server
+      ansible.builtin.service:
+        name: zabbix-server
+        state: restarted
+        enabled: true
+
+    - name: Ensure Zabbix agent2 is enabled
+      ansible.builtin.service:
+        name: zabbix-agent2
+        state: restarted
+        enabled: true
+
+- name: Configure Zabbix nginx frontend
+  hosts: zabbix
+  become: true
+
+  tasks:
+    - name: Disable default nginx site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Configure Zabbix nginx listen port
+      ansible.builtin.lineinfile:
+        path: /etc/zabbix/nginx.conf
+        regexp: '^\s*#?\s*listen\s+'
+        line: '        listen 80 default_server;'
+
+    - name: Configure Zabbix nginx server name
+      ansible.builtin.lineinfile:
+        path: /etc/zabbix/nginx.conf
+        regexp: '^\s*#?\s*server_name\s+'
+        line: '        server_name _;'
+
+    - name: Validate nginx configuration
+      ansible.builtin.command: nginx -t
+      changed_when: false
+
+    - name: Restart nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+        enabled: true
+
+    - name: Check Zabbix frontend locally
+      ansible.builtin.uri:
+        url: http://127.0.0.1/
+        status_code: 200
+      register: zabbix_frontend

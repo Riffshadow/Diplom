@@ -1,0 +1,84 @@
+---
+- name: Run Filebeat 7.17.9 on web servers
+  hosts: web
+  become: true
+
+  tasks:
+    - name: Install Docker
+      ansible.builtin.apt:
+        name: docker.io
+        state: present
+        update_cache: true
+
+    - name: Enable and start Docker
+      ansible.builtin.service:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Create Filebeat configuration directory
+      ansible.builtin.file:
+        path: /etc/filebeat
+        state: directory
+        mode: "0755"
+
+    - name: Create Filebeat configuration
+      ansible.builtin.copy:
+        dest: /etc/filebeat/filebeat.yml
+        mode: "0644"
+        content: |
+          filebeat.inputs:
+            - type: log
+              enabled: true
+              paths:
+                - /var/log/nginx/access.log
+                - /var/log/nginx/error.log
+
+          processors:
+            - add_host_metadata: ~
+
+          output.elasticsearch:
+            hosts: ["http://10.10.11.20:9200"]
+
+          setup.kibana:
+            host: "http://10.10.1.30:5601"
+
+    - name: Pull Filebeat image
+      ansible.builtin.command:
+        cmd: docker pull docker.elastic.co/beats/filebeat:7.17.9
+      register: filebeat_pull
+      changed_when: "'Downloaded newer image' in filebeat_pull.stdout"
+
+    - name: Remove old Filebeat container if present
+      ansible.builtin.shell: |
+        if docker ps -a --format '{% raw %}{{.Names}}{% endraw %}' | grep -qx filebeat; then
+          docker rm -f filebeat
+        fi
+      register: remove_filebeat
+      changed_when: remove_filebeat.stdout != ""
+
+    - name: Start Filebeat container
+      ansible.builtin.command:
+        cmd: >
+          docker run -d
+          --name filebeat
+          --restart unless-stopped
+          --user=root
+          -v /etc/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+          -v /var/log/nginx:/var/log/nginx:ro
+          docker.elastic.co/beats/filebeat:7.17.9
+          filebeat -e --strict.perms=false
+
+    - name: Wait for Filebeat
+      ansible.builtin.pause:
+        seconds: 10
+
+    - name: Check Filebeat container
+      ansible.builtin.command:
+        cmd: docker ps --filter name=filebeat
+      register: filebeat_status
+      changed_when: false
+
+    - name: Show Filebeat status
+      ansible.builtin.debug:
+        var: filebeat_status.stdout_lines
