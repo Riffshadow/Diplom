@@ -72,7 +72,7 @@ Ansible используется для настройки серверов по
 
 Повторный запуск playbook для web-серверов завершается без ошибок и без необходимости внесения изменений.
 
-![Ansible](screenshots/03-ansible-web.png)
+![Ansible](03-ansible-web.png.png)
 
 ## Application Load Balancer
 
