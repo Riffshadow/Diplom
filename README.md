@@ -125,7 +125,7 @@ Dashboard `Diplom USE Monitoring` содержит CPU/RAM/Disk Utilization, Net
 ### Zabbix Dashboard
 
 ![Zabbix Dashboard](05-zabbix-dashboard.png.png)
-
+![Zabbix Dashboard](05-zabbix-dashboard-2.png.png)
 ### Контролируемые хосты
 
 ![Zabbix Hosts](06-zabbix-hosts.png.png)
