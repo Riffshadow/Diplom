@@ -6,9 +6,9 @@
 
 ## Доступ к ресурсам
 
-- Сайт: http://158.160.167.179
-- Zabbix: http://158.160.43.245
-- Kibana: http://130.193.48.83:5601
+- Сайт: http://158.160.219.172/
+- Zabbix: http://89.169.144.194/
+- Kibana: http://93.77.180.204:5601/
 
 Для проверки дипломной работы веб-интерфейсы Zabbix и Kibana доступны извне.
 
@@ -30,6 +30,10 @@ Elasticsearch и внутренние сервисы не публикуются
 Web-серверы размещены в разных зонах доступности и работают за Application Load Balancer.
 
 Доступ к внутренним виртуальным машинам по SSH осуществляется через bastion-host.
+
+Ansible inventory использует внутренние FQDN вида `.ru-central1.internal`, а подключение к приватным ВМ выполняется через `ProxyCommand`.
+
+Перед сдачей все 6 виртуальных машин переведены в непрерываемый режим: `preemptible = false`.
 
 ## Используемые технологии
 
@@ -59,6 +63,12 @@ Terraform используется для автоматического соз�
 - HTTP router;
 - backend group;
 - автоматического расписания резервного копирования.
+
+Финальный `terraform plan`:
+
+```text
+No changes. Your infrastructure matches the configuration.
+```
 
 ### Созданные виртуальные машины
 
@@ -102,9 +112,15 @@ Ansible используется для настройки серверов по
 
 Для мониторинга инфраструктуры используется Zabbix.
 
-На web-1 и web-2 установлен Zabbix Agent 2. Используется шаблон:
+Zabbix Agent 2 установлен на всех 6 виртуальных машинах и работает в active mode. Агенты отправляют метрики на `diplom-zabbix.ru-central1.internal`.
+
+Используется шаблон:
 
 `Linux by Zabbix agent active`
+
+Для `web-1` и `web-2` настроены Web scenarios `Homepage` с проверкой HTTP 200.
+
+Dashboard `Diplom USE Monitoring` содержит CPU/RAM/Disk Utilization, Network Traffic, CPU/Disk Saturation, Network Errors, HTTP Response Time и HTTP Errors.
 
 ### Zabbix Dashboard
 
@@ -140,7 +156,8 @@ Filebeat установлен на обоих web-серверах и собир
 - статус расписания: `ACTIVE`;
 - запуск: ежедневно;
 - срок хранения: 7 дней;
-- в расписание включены диски всех 6 виртуальных машин.
+- в расписание включены диски всех 6 виртуальных машин;
+- созданные snapshot проверены в состоянии `READY`.
 
 ![Snapshot Schedule](08-snapshot-schedule.png.png)
 
