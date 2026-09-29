@@ -11,7 +11,7 @@ variable "ssh_public_key_path" {
 }
 
 variable "preemptible" {
-  description = "Прерываемые ВМ на этапе настройки; перед сдачей выключить"
+  description = "Использовать прерываемые виртуальные машины"
   type        = bool
-  default     = true
+  default     = false
 }

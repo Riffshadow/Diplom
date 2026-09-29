@@ -1,7 +1,7 @@
 resource "yandex_compute_snapshot_schedule" "daily" {
   name             = "diplom-daily-backup"
   description      = "Daily snapshots of all VM disks, retained for one week"
-  retention_period = "168h"
+  retention_period = "168h0m0s"
 
   schedule_policy {
     expression = "0 1 * * *"

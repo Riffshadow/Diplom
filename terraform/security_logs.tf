@@ -15,14 +15,6 @@ resource "yandex_vpc_security_group" "kibana" {
     port              = 5601
     security_group_id = yandex_vpc_security_group.web.id
   }
-
-  ingress {
-    description    = "Kibana public reverse proxy"
-    protocol       = "TCP"
-    port           = 80
-    v4_cidr_blocks = ["0.0.0.0/0"]
-  }
-
 }
 
 resource "yandex_vpc_security_group" "elasticsearch" {
